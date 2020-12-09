@@ -1,0 +1,92 @@
+---
+title: "Visualizing Airbnb Listings in San Francisco"
+output:
+  html_document:
+    df_print: paged
+---
+**Task:** Exploratory Analysis Using ggplot2
+
+**Dataset:** Airbnb listings in San Francisco, the dtaset contains 16 variables and 6998 observations. The data can be obtained from [http://data.insideairbnb.com/united-states/ca/san-francisco/2020-10-05/visualisations/listings.csv]
+
+
+load required libraries
+```{r}
+library(tidyverse)
+
+```
+**Data Preparation and Preprocessing**
+
+Import data and check on its structure
+```{r}
+listings <- read.csv("listings.csv")
+str(listings)
+```
+
+Change data types
+```{r}
+listings$last_review <- as.Date(listings$last_review) #change data type of last_review to Date
+listings$room_type <- factor(listings$room_type) #room_type data type from character to factor
+listings$neighbourhood <- factor(listings$neighbourhood) #neighbourhood data type from character to factor
+listings$host_id <- factor(listings$host_id) #host_id from numeric to factor
+
+```
+Drop redundant columns and get the summary statistics
+```{r}
+listings <- listings[-c(1,4)] #drop id and host_name columns, id is insignificant and host_name for ethical reasons
+summary(listings) # get the summary of the data
+```
+Handling missing values, 
+```{r}
+listings$neighbourhood_group <- NULL # drop neighbourhood_group column because it has all NA"s
+listings$last_review <- NULL #drop last_review column, there are lots of NA's because if there were no reviews for the listings, the date doesn't exist
+listings$reviews_per_month[is.na (listings$reviews_per_month)] <- 0 #replace the NA's in reviews_per_month with zero since there were no reviews for that particular day
+
+```
+
+**Exploratory Data Analysis:** VIsualization using ggplot2
+
+```{r Room_type}
+#distribution of room_type
+ggplot(listings, aes(x=room_type, fill=room_type)) + geom_bar() + labs(title = "Room_type")
+```
+Entire home/apartment is the most preferred by tourists followed by Private room. the least preferred is the Hotel room
+
+```{r neighbourhood}
+#top 10 frequent neighbourhoods
+listings %>% count(neighbourhood) %>% arrange(desc(n))%>% head(10) %>% ggplot(aes(x=neighbourhood, y=n, fill=neighbourhood)) +geom_bar(stat = "identity",position = "dodge") + coord_flip() + ylab("frequency") + labs(title = "Top 10 neighbourhoods")
+```
+
+From the bar chart, it can be deduced that, Donwntown/Civic Centre is the most preferred neighbourhood by tourists
+
+```{r price}
+#variation in Price
+ggplot(listings, aes(x=price)) + geom_histogram(fill="aquamarine", bins = 100, color= "black") + labs(title = "Price") #the histogram is not that good
+
+df=data.frame(price=listings["price"][listings["price"]<=2000])
+ggplot(df, aes(x= price)) + geom_histogram(fill="aquamarine", bins = 100, color="black") + labs(title = "Price <= 2000") #plot price <= 2000 for some clarity
+
+```
+THe first plot is not clear because of outliers
+the second plot is a bit clear where I considered the price of <=2000
+```{r minimum_nights}
+df2= data.frame(minimum_nights=listings["minimum_nights"][listings["minimum_nights"]<=30])
+ggplot(df2, aes(x=minimum_nights)) + geom_histogram(bins=50, fill="orange", color= "black")
+```
+minimum night of 30 has the highest listing
+
+```{r price vs minimum_nights}
+listings %>% mutate(minimum_nights = ifelse(minimum_nights<=30, "short_term_rentals", "long_term_rentals")) %>% ggplot(aes(x=minimum_nights, y=price, fill= minimum_nights)) + geom_bar(stat = "identity")
+```
+Short term rentals of <=30 nights are more expensive than long term rentals maybe because they have high listings
+
+```{r}
+#hosts running business with multiple listings
+listings %>% group_by(neighbourhood) %>% count(host_id) %>% arrange(desc(n))%>% head(10) %>% ggplot(aes(x=host_id, y=n, fill=neighbourhood)) +geom_bar(stat = "identity", position="dodge") + coord_flip() + labs(title="Hosts running business with multiple listings")
+```
+The host with id 4430421 has the most listings and in 2 neighbourhoods
+
+```{r}
+#distibution of room_type across the region
+ggplot(listings,aes(x=longitude, y= latitude, color=room_type)) + geom_point()
+```
+
