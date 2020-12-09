@@ -1,8 +1,8 @@
 ---
 title: "Visualizing Airbnb Listings in San Francisco"
 output:
-  html_document:
-    df_print: paged
+  rmarkdown::github_document
+  
 ---
 **Task:** Exploratory Analysis Using ggplot2
 
